@@ -8,13 +8,15 @@ class ScorePredictor(nn.Module):
         #self.W = nn.Linear(3 * in_features, 1)
         self.W1 = nn.Linear(3 * in_features, hidden_edge_scores) 
         self.W2 = nn.Linear(hidden_edge_scores, 1)
+        #self.W3 = nn.Linear(32, 1)
 
     def apply_edges(self, edges):
         data = torch.cat((edges.src['x'], edges.dst['x'], edges.data['e']), dim=1)
         #score = self.W(data) 
         h = self.W1(data) 
         h = torch.relu(h) 
-        score = self.W2(h) 
+        score = self.W2(h)
+        #score = self.W3(torch.relu(self.W2(h))) 
         return {'score': score}
 
     def forward(self, graph, x, e):

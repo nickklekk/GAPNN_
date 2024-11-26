@@ -14,7 +14,8 @@ import train
 import inference
 import evaluate
 import config
-
+import torch
+import gc
 
 chr_lens = {
     'chr1' : 248387328,
@@ -41,6 +42,57 @@ chr_lens = {
     'chr22': 51324926,
     'chrX' : 154259566,
 }
+
+chr_lens_CRI = {
+    'chr1' : 115625680,
+    'chr2' : 99967739,
+    'chr3' : 105289737,
+    'chr4' : 8128427,
+    'chr5' : 102717991,
+    'chr6' : 115117259,
+    'chr7' : 92701990,
+    'chr8' : 119865549,
+    'chr9' : 77899622,
+    'chr10': 110286396,
+    'chr11': 113090379,
+    'chr12': 102048655,
+    'chr13': 109229323,
+}
+
+chr_lens_Maize = {
+    'chr1' : 307161061,
+    'chr2' : 247252575,
+    'chr3' : 242695267,
+    'chr4' : 250837983,
+    'chr5' : 220192196,
+    'chr6' : 201579706,
+    'chr7' : 181225861,
+    'chr8' : 208417438,
+    'chr9' : 168021374,
+    'chr10': 149659021,
+
+}
+
+chr_lens_Tea = {
+    'chr1' : 307161061,
+    'chr2' : 247252575,
+    'chr3' : 242695267,
+    'chr4' : 250837983,
+    'chr5' : 220192196,
+    'chr6' : 201579706,
+    'chr7' : 181225861,
+    'chr8' : 208417438,
+    'chr9' : 168021374,
+    'chr10': 149659021,
+    'chr11' : 201579706,
+    'chr12' : 181225861,
+    'chr13' : 208417438,
+    'chr14' : 168021374,
+    'chr15': 149659021,
+
+
+}
+
 
 
 def change_description(file_path):
@@ -98,35 +150,35 @@ def file_structure_setup(data_path, ref_path):
 
 
 # 0. Download the CHM13 if necessary
-def download_reference(ref_path):
-    chm_path = os.path.join(ref_path, 'CHM13')
-    chr_path = os.path.join(ref_path, 'chromosomes')
-    chm13_url = 'https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/CHM13/assemblies/chm13.draft_v1.1.fasta.gz'
-    chm13_path = os.path.join(chm_path, 'chm13.draft_v1.1.fasta.gz')
+# def download_reference(ref_path):
+#     chm_path = os.path.join(ref_path, 'CHM13')
+#     chr_path = os.path.join(ref_path, 'chromosomes')
+#     chm13_url = 'https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/CHM13/assemblies/chm13.draft_v1.1.fasta.gz'
+#     chm13_path = os.path.join(chm_path, 'chm13.draft_v1.1.fasta.gz')
 
-    if len(os.listdir(chm_path)) == 0:
-        # Download the CHM13 reference
-        # Code for tqdm from: https://stackoverflow.com/questions/37573483/progress-bar-while-download-file-over-http-with-requests
-        print(f'SETUP::download:: CHM13 not found! Downloading...')
-        response = requests.get(chm13_url, stream=True)
-        total_size_in_bytes= int(response.headers.get('content-length', 0))
-        block_size = 1024 #1 Kibibyte
-        progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True)
+#     if len(os.listdir(chm_path)) == 0:
+#         # Download the CHM13 reference
+#         # Code for tqdm from: https://stackoverflow.com/questions/37573483/progress-bar-while-download-file-over-http-with-requests
+#         print(f'SETUP::download:: CHM13 not found! Downloading...')
+#         response = requests.get(chm13_url, stream=True)
+#         total_size_in_bytes= int(response.headers.get('content-length', 0))
+#         block_size = 1024 #1 Kibibyte
+#         progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True)
 
-        with open(chm13_path, 'wb') as file:
-            for data in response.iter_content(block_size):
-                progress_bar.update(len(data))
-                file.write(data)
-        progress_bar.close()
-        if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
-            print("ERROR, something went wrong")
+#         with open(chm13_path, 'wb') as file:
+#             for data in response.iter_content(block_size):
+#                 progress_bar.update(len(data))
+#                 file.write(data)
+#         progress_bar.close()
+#         if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
+#             print("ERROR, something went wrong")
 
-    if len(os.listdir(chr_path)) == 0:
-        # Parse the CHM13 into individual chromosomes
-        print(f'SETUP::download:: Split CHM13 per chromosome')
-        with gzip.open(chm13_path, 'rt') as f:
-            for record in SeqIO.parse(f, 'fasta'):
-                SeqIO.write(record, os.path.join(chr_path, f'{record.id}.fasta'), 'fasta')
+#     if len(os.listdir(chr_path)) == 0:
+#         # Parse the CHM13 into individual chromosomes
+#         print(f'SETUP::download:: Split CHM13 per chromosome')
+#         with gzip.open(chm13_path, 'rt') as f:
+#             for record in SeqIO.parse(f, 'fasta'):
+#                 SeqIO.write(record, os.path.join(chr_path, f'{record.id}.fasta'), 'fasta')
 
 
 # 1. Simulate the sequences
@@ -144,7 +196,7 @@ def simulate_reads(data_path, ref_path, chr_dict):
 
     data_path = os.path.abspath(data_path)
     chr_path = os.path.join(ref_path, 'chromosomes')
-    len_path = os.path.join(ref_path, 'lengths')
+    # len_path = os.path.join(ref_path, 'lengths')
     sim_path = os.path.join(data_path, 'simulated')
     for chrN, n_need in chr_dict.items():
         if '_r' in chrN:
@@ -158,14 +210,14 @@ def simulate_reads(data_path, ref_path, chr_dict):
             print(f'SETUP::simulate:: Simulate {n_diff} datasets for {chrN}')
             # Simulate reads for chrN n_diff times
             chr_seq_path = os.path.join(chr_path, f'{chrN}.fasta')
-            chr_dist_path = os.path.join(len_path, f'{chrN}.txt')
+            # chr_dist_path = os.path.join(len_path, f'{chrN}.txt')
             chr_len = chr_lens[chrN]
             for i in range(n_diff):
                 idx = n_have + i
                 chr_save_path = os.path.join(chr_raw_path, f'{idx}.fasta')
                 print(f'\nStep {i}: Simulating reads {chr_save_path}')
                 subprocess.run(f'./vendor/seqrequester/build/bin/seqrequester simulate -genome {chr_seq_path} ' \
-                               f'-genomesize {chr_len} -coverage 32.4 -distribution {chr_dist_path} > {chr_save_path}',
+                               f'-genomesize {chr_len} -coverage 32.4 -distribution pacbio > {chr_save_path}',
                                shell=True)
                 change_description(chr_save_path)
 
@@ -233,7 +285,7 @@ def train_valid_split(data_path, train_dict, valid_dict, test_dict={}, out=None)
     data_path = os.path.abspath(data_path)
     sim_path = os.path.join(data_path, 'simulated')
     real_path = os.path.join(data_path, 'real')
-    exp_path = os.path.join(data_path, 'experiments')
+    exp_path = os.path.join(data_path,'experiments')
 
     if out is None:
         train_path = os.path.join(exp_path, f'train')
@@ -367,8 +419,18 @@ def predict_baselines(test_path, out, model_path=None, device='cpu'):
         num_contigs, longest_contig, reconstructed, n50, ng50 = evaluate.quick_evaluation(contigs_ol_sim, chrN)
         evaluate.print_summary(test_path, idx, chrN, num_contigs, longest_contig, reconstructed, n50, ng50)
 
+# def quast_result(ref_path, test_path, out, chr_dict, model_path=None, device='cpu')
+#     subprocess.run(f'source' cwd = '/home/huke/project/GNNome-assembly/quast.sh')
+#     for chrN, n_need in chr_dict.items():
+#         subprocess.run(f'quast -r {ref_path/chromosomes/chr{i}.fasta} 
+#         -o {<data_path>/experiments/{test_path}/quast} {<data_path>/experiments/{test_path}/assembly/chr{i}_assembly.fasta}', 
+#         shell=True.cwd-s)
+
+
 
 if __name__ == '__main__':
+    gc.collect()
+    torch.cuda.empty_cache()
     parser = argparse.ArgumentParser()
     parser.add_argument('--data', type=str, default='data', help='Path to directory with simulated and real data')
     parser.add_argument('--refs', type=str, default='data/references', help='Path to directory with reference information')
@@ -394,7 +456,7 @@ if __name__ == '__main__':
     all_chr = merge_dicts(train_dict, valid_dict, test_dict)
 
     file_structure_setup(data_path, ref_path)
-    download_reference(ref_path)
+    # download_reference(ref_path)
     simulate_reads(data_path, ref_path, all_chr)
     generate_graphs(data_path, all_chr)
     train_path, valid_path, test_path = train_valid_split(data_path, train_dict, valid_dict, test_dict, out)

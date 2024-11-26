@@ -3,14 +3,16 @@ import pickle
 import random
 
 import torch
+import torch.nn.functional as F
 import numpy as np
 import dgl
 
 from scipy import sparse as sp 
+# from torch_geometric.utils import add_self_loops
 
 import algorithms
 
-
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 def set_seed(seed=42):
     """Set random seed to enable reproducibility.
     
@@ -239,3 +241,26 @@ def calculate_metrics(TP, TN, FP, FN):
     accuracy = (TP + TN) / (TP + TN + FP + FN)
     return accuracy, precision, recall, f1
 
+
+def node_difficulty_measurer(data, label):
+    neighbor_label, _ = add_self_loops(data.edge_index)
+    neighbor_label[1] = label[neighbor_label[1]]
+    # 节点的邻节点分布
+    neighbor_label = torch.transpose(neighbor_label, 0, 1)
+    index, count = torch.unique(neighbor_label,sorted=True, return_counts=True, dim=0)
+    neighbor_class = torch.sparse_coo_tensor(index.T, count)
+    neighbor_class = neighbor_class.to_dense().float()
+    # 计算节点的邻居信息熵
+    neighbor_class = neighbor_class[data.train_id]
+    neighbor_class = F.normalize(neighbor_class, 1.0, 1)
+    neighbor_entropy = -1 * neighbor_class * torch.log(neighbor_class + torch.exp(torch.tensor(-20)))  # 防止log里面是0出现异常
+    local_difficulty = neighbor_entropy.sum(1)
+    return local_difficulty.to(device)
+
+def sort_training_nodes(data, label, embedding, alpha = 0.5):
+    # 节点难度设置
+    node_difficulty = difficulty_measurer(data, label, embedding, alpha)
+    # 用torch进行分类
+    _, indices = torch.sort(node_difficulty)
+    sorted_trainset = data.train_id[indices]
+    return sorted_trainset

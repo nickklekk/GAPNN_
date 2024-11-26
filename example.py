@@ -13,7 +13,7 @@ def example():
 
     train_dict = {'chr19': 3}
     valid_dict = {'chr19': 1}
-    test_dict = {'chr21': 1}
+    test_dict = {'chr10': 1}
     all_chr = pipeline.merge_dicts(train_dict, valid_dict, test_dict)
 
     pipeline.file_structure_setup(data_path, ref_path)

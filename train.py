@@ -112,7 +112,7 @@ def view_model_param(model):
     return total_param
 
 
-def train(train_path, valid_path, out, overfit=False):
+def train(train_path, valid_path, out, overfit=False, dropout=0.5):
     """Training loop where the model learns to predict the edge labels.
 
     Parameters
@@ -192,12 +192,29 @@ def train(train_path, valid_path, out, overfit=False):
 #         best_model = models.GraphGatedGCNModel(node_features, edge_features, hidden_features, hidden_edge_features, num_gnn_layers, hidden_edge_scores, batch_norm, nb_pos_enc) # GatedGCN 
 
 
-    model = models.GraphGatedGCNModel(node_features, edge_features, hidden_features, hidden_edge_features, num_gnn_layers, hidden_edge_scores, batch_norm, nb_pos_enc) # GatedGCN
-    best_model = models.GraphGatedGCNModel(node_features, edge_features, hidden_features, hidden_edge_features, num_gnn_layers, hidden_edge_scores, batch_norm, nb_pos_enc) # GatedGCN
+    # model = models.GraphGatedGCNModel(node_features, edge_features, hidden_features, hidden_edge_features, num_gnn_layers, hidden_edge_scores, batch_norm, nb_pos_enc) # GatedGCN
+    # best_model = models.GraphGatedGCNModel(node_features, edge_features, hidden_features, hidden_edge_features, num_gnn_layers, hidden_edge_scores, batch_norm, nb_pos_enc) # GatedGCN
+
+    model = models.SageModel(node_features, edge_features, hidden_features, hidden_edge_features, num_gnn_layers, hidden_edge_scores, batch_norm, nb_pos_enc, dropout=dropout) # Sage
+    best_model = models.SageModel(node_features, edge_features, hidden_features, hidden_edge_features, num_gnn_layers, hidden_edge_scores, batch_norm, nb_pos_enc, dropout=dropout) # Sage
+
+    # model = models.SymGatedGCNModel(node_features, edge_features, hidden_features, hidden_edge_features, num_gnn_layers, hidden_edge_scores, batch_norm, nb_pos_enc, dropout=dropout)
+    # best_model = models.SymGatedGCNModel(node_features, edge_features, hidden_features, hidden_edge_features, num_gnn_layers, hidden_edge_scores, batch_norm, nb_pos_enc, dropout=dropout)
+
+    # model = models.GATModel(node_features, edge_features, hidden_features, hidden_edge_features, num_gnn_layers, hidden_edge_scores, batch_norm, nb_pos_enc, dropout=dropout)
+    # best_model = models.GATModel(node_features, edge_features, hidden_features, hidden_edge_features, num_gnn_layers, hidden_edge_scores, batch_norm, nb_pos_enc, dropout=dropout)
+
+    # model = models.GCNModel(node_features, edge_features, hidden_features, hidden_edge_features, num_gnn_layers, hidden_edge_scores, batch_norm, nb_pos_enc, dropout=dropout)
+    # best_model = models.GCNModel(node_features, edge_features, hidden_features, hidden_edge_features, num_gnn_layers, hidden_edge_scores, batch_norm, nb_pos_enc, dropout=dropout)
+
+    # model = models.PathNNModel(node_features, edge_features, hidden_features, hidden_edge_features, num_gnn_layers, hidden_edge_scores, batch_norm, nb_pos_enc, dropout=dropout)
+    # best_model = models.PathNNModel(node_features, edge_features, hidden_features, hidden_edge_features, num_gnn_layers, hidden_edge_scores, batch_norm, nb_pos_enc, dropout=dropout)
+
 
     model.to(device)
     if not os.path.exists('pretrained'):
         os.makedirs('pretrained')
+    # 训练后的模型路径
     model_path = os.path.abspath(f'pretrained/model_{out}.pt')
     best_model.to(device)
     best_model.load_state_dict(copy.deepcopy(model.state_dict()))
@@ -236,6 +253,39 @@ def train(train_path, valid_path, out, overfit=False):
 
                 print('TRAINING')
                 random.shuffle(ds_train.graph_list)
+                # TODO
+
+                # X, y = make_classification(n_samples=1000, n_features=20, random_state=42)
+
+                # 初始化渐进式学习器
+                # clf = SGDClassifier()
+
+                # 逐步学习和更新模型
+                #for i in range(10):
+                    # 获取当前迭代的批次数据
+#                    X_batch = X[i * 100: (i + 1) * 100]
+#                    y_batch = y[i * 100: (i + 1) * 100]
+
+                    # 部分拟合（partial fit）：逐步更新模型参数
+#                    clf.partial_fit(X_batch, y_batch, classes=np.unique(y))
+
+                # 预测新数据
+                #new_data = [[0.5, -1.0, 2.0, ...]]  # 新数据样本特征
+                #predicted_class = clf.predict(new_data)
+
+#                print("预测类别为:", predicted_class)
+                def get_easy_graph(trian_list,length=10):
+                    for i in range(10):
+                        train_list_easy = train_list[i * 100: (i + 1) * 100]
+
+
+
+                    
+
+                    pass
+
+                # epoch_train = get_easy_graph(ds_train, )
+
                 for data in ds_train:
                     model.train()
                     idx, g = data
@@ -259,6 +309,7 @@ def train(train_path, valid_path, out, overfit=False):
                         train_loss = loss.item()
                         TP, TN, FP, FN = utils.calculate_tfpn(edge_predictions, edge_labels)
                         acc, precision, recall, f1 =  utils.calculate_metrics(TP, TN, FP, FN)
+                        
                         try:
                             fp_rate = FP / (FP + TN)
                         except ZeroDivisionError:

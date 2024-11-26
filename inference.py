@@ -278,6 +278,7 @@ def sample_edges(edge_scores, nb_paths):
 
 
 def inference_baselines(data_path, model_path, device='cpu'):
+    # baseline是预训练模型
     """Using a pretrained model, get walks and contigs on new data."""
     hyperparameters = get_hyperparameters()
     seed = hyperparameters['seed']
@@ -418,7 +419,16 @@ def inference(data_path, model_path, device='cpu'):
 
     time_start = datetime.now()
 
-    model = models.GraphGatedGCNModel(node_features, edge_features, hidden_features, hidden_edge_features, num_gnn_layers, hidden_edge_scores, batch_norm, nb_pos_enc)
+    # model = models.GraphGatedGCNModel(node_features, edge_features, hidden_features, hidden_edge_features, num_gnn_layers, hidden_edge_scores, batch_norm, nb_pos_enc)
+    # 修改加载模型
+    # model = models.SymGatedGCNModel(node_features, edge_features, hidden_features, hidden_edge_features, num_gnn_layers, hidden_edge_scores, batch_norm, nb_pos_enc, dropout=0.5)
+
+    # model = models.GATModel(node_features, edge_features, hidden_features, hidden_edge_features, num_gnn_layers, hidden_edge_scores, batch_norm, nb_pos_enc, dropout=0.5)
+    model = models.SageModel(node_features, edge_features, hidden_features, hidden_edge_features, num_gnn_layers, hidden_edge_scores, batch_norm, nb_pos_enc, dropout=0.5) # Sage
+    # model = models.GCNModel(node_features, edge_features, hidden_features, hidden_edge_features, num_gnn_layers, hidden_edge_scores, batch_norm, nb_pos_enc, dropout=0.5)
+    # model = models.PathNNModel(node_features, edge_features, hidden_features, hidden_edge_features, num_gnn_layers, hidden_edge_scores, batch_norm, nb_pos_enc)
+
+    
     model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
     model.eval()
     model.to(device)

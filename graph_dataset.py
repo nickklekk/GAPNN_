@@ -123,6 +123,7 @@ class AssemblyGraphDataset(DGLDataset):
             
             print(f'\nRaven generated the graph! Processing...')
             processed_path = os.path.join(self.save_dir, f'{idx}.dgl')
+            # 根据CSV文件处理
             graph, pred, succ, reads, edges, labels = graph_parser.from_csv(os.path.join(self.tmp_dir, f'{idx}_graph_1.csv'), reads_path)
             print(f'Parsed Raven output! Saving files...')
 

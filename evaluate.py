@@ -32,6 +32,19 @@ chr_lens = {
     'chrX' : 154259566,
 }
 
+chr_lens_Maize = {
+    'chr1' : 307161061,
+    'chr2' : 247252575,
+    'chr3' : 242695267,
+    'chr4' : 250837983,
+    'chr5' : 220192196,
+    'chr6' : 201579706,
+    'chr7' : 181225861,
+    'chr8' : 208417438,
+    'chr9' : 168021374,
+    'chr10': 149659021,
+}
+
 
 def walk_to_sequence(walks, graph, reads, edges):
     contigs = []
@@ -94,6 +107,7 @@ def calculate_NG50(contigs, ref_length):
 
 def quick_evaluation(contigs, chrN):
     # contigs = walk_to_sequence(walks, graph, reads, edges)
+    # 修改对应的植物/人类chr
     chr_len = chr_lens[chrN]
     lengths_list = [len(c.seq) for c in contigs]
     num_contigs = len(contigs)
