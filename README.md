@@ -54,3 +54,19 @@ _test_dict = {'chr21_r': 1}
 ```bash
 python pipeline.py --data <data_path> --out <out_name>
 ```
+
+### Evaluate assemblies
+The assembly sequences, obtained for the graphs in the test set, wil lbe stored inside `<data_path>/experiments/test_<out>/assembly` directory. In this paper, we use [Quast](https://github.com/ablab/quast) and BUSCO to evaluate the obtained assemblies.
+```bash
+conda install -c bioconda quast
+conda install -c conda-forge -c bioconda busco=5.6.0 
+```
+The usage of quast:
+```bash
+quast -r <path_to_reference> -o <output_dir> <path_to_assembly_file>
+```
+The usage of Busco:
+```bash
+ busco -i [SEQUENCE_FILE] -l [LINEAGE] -o [OUTPUT_NAME] -m [MODE]
+```
+
